@@ -1,0 +1,50 @@
+{
+  "name": "event-harvest-api",
+  "version": "1.0.0",
+  "description": "JSON-only web API for detecting significant stock market events within user-specified date ranges",
+  "type": "module",
+  "main": "src/api/server.js",
+  "bin": {
+    "event-harvest": "./src/cli/main.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "start": "node src/api/server.js",
+    "dev": "node --watch src/api/server.js",
+    "test": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:contract": "vitest run tests/contract",
+    "test:coverage": "vitest run --coverage",
+    "cli": "node src/cli/main.js",
+    "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix",
+    "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\""
+  },
+  "keywords": [
+    "stock",
+    "events",
+    "api",
+    "ndjson",
+    "financial",
+    "market-data"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fastify": "^4.29.1",
+    "got": "^13.0.0",
+    "marked": "^11.2.0",
+    "sentiment": "^5.0.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^1.6.1",
+    "eslint": "^8.57.1",
+    "prettier": "^3.6.2",
+    "vitest": "^1.6.1"
+  }
+}

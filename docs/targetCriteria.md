@@ -1,0 +1,43 @@
+## 대상 거래소 확인
+
+- format
+    - taget.{exchageCode}.{exchangeName}.{decription(optional)}
+
+- target
+    - XNYS
+        - New York Stock Exchange
+    - XNAS
+        - Nasdaq Stock Market
+    - XASE
+        - NYSE American, 구 AMEX
+    - LTSE
+        - Long-Term Stock Exchange
+            - 등록된 상장 거래소(사례는 드묾)
+    - ARCX
+        - NYSE Arca 
+            - 주로 ETP 상장/거래
+    - XCIS
+        - NYSE National
+    - XCHI
+        - NYSE Texas
+            - NYSE Chicago의 개칭/재편. MIC는 XCHI가 관용적으로 쓰입니다
+    - XBOS
+        - Nasdaq BX
+    - XPSX
+        - Nasdaq PSX
+    - BATY
+        - Cboe BYX
+    - BATS
+        - Cboe BZX
+    - EDGA
+        - Cboe EDGA
+    - EDGX
+        - Cboe EDGX
+    - IEXG
+        - Investors Exchange, IEX
+            - 상장 권한 보유(상장 사례 존재)
+    - MEMX
+        - MEMX
+    - EPRL
+        - MIAX Pearl Equities
+            - 주식 전용 MIC는 EPRL

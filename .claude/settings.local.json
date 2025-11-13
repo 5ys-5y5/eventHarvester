@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch:*)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "WebSearch",
+      "Bash(bash:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(test:*)",
+      "Bash(npm install:*)",
+      "Bash(chmod:*)",
+      "Bash(timeout 5 node:*)",
+      "Bash(npm test:*)",
+      "Bash(node src/api/server.js:*)",
+      "Bash(curl:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

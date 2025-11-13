@@ -1,0 +1,339 @@
+openapi: 3.0.3
+info:
+  title: Stock Event Harvesting API
+  description: JSON-only web API for detecting significant stock market events within user-specified date ranges
+  version: 1.0.0
+  contact:
+    name: eventHarvester API
+servers:
+  - url: https://event-harvester.onrender.com
+    description: Production (Render.com)
+  - url: http://localhost:3000
+    description: Local Development
+
+paths:
+  /api/v1/events:
+    get:
+      summary: Query stock events by date range
+      description: |
+        Searches for significant stock market events within a relative date range.
+        Date parameters are natural numbers (positive integers) representing offsets from today.
+
+        Example: startDate=3, endDate=4 searches from 3 days after today for a 4-day duration.
+
+        Returns NDJSON format: one event per line, final line contains search coverage checklist.
+      operationId: queryEvents
+      tags:
+        - Events
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          description: Relative offset from today in days (natural number, positive integer)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            example: 3
+        - name: endDate
+          in: query
+          required: true
+          description: Duration of search window in days (natural number, positive integer)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 365
+            example: 4
+      responses:
+        '200':
+          description: Successful event query with NDJSON response
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                enum:
+                  - application/x-ndjson
+            X-Request-ID:
+              schema:
+                type: string
+                format: uuid
+              description: Correlation ID for request tracking
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+                description: NDJSON format - one JSON object per line
+              example: |
+                {"type":"event","data":{"ticker":"AAPL","eventType":"earnGuide","eventDate":"2025-11-15","impactSummary":{"keyFacts":["Q4 revenue beat expectations by 5%"],"sentiment":"positive"},"evidenceLinks":["https://sec.gov/..."]}}
+                {"type":"coverage","data":{"queryId":"550e8400-e29b-41d4-a716-446655440000","dateRange":{"startDate":3,"endDate":4,"computedStart":"2025-11-15","computedEnd":"2025-11-18"},"summary":{"totalEventTypes":50,"successfulSearches":47,"coveragePercentage":94.00}}}
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidDateRange:
+                  value:
+                    error: "Bad Request"
+                    message: "startDate and endDate must be positive integers"
+                    code: "INVALID_DATE_PARAMS"
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '504':
+          description: Gateway timeout (only if 60-second max timeout exceeded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - ApiKeyAuth: []
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns service health status
+      operationId: healthCheck
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - healthy
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  uptime:
+                    type: number
+                    description: Server uptime in seconds
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  schemas:
+    Event:
+      type: object
+      required:
+        - ticker
+        - eventType
+        - eventDate
+        - impactSummary
+        - evidenceLinks
+      properties:
+        ticker:
+          type: string
+          pattern: '^[A-Z]{1,5}$'
+          example: "AAPL"
+          description: Stock ticker symbol (uppercase, max 5 characters)
+        eventType:
+          type: string
+          example: "earnGuide"
+          description: Event classification from eventsByTypeList
+        eventDate:
+          type: string
+          format: date
+          example: "2025-11-15"
+          description: Event date in ISO 8601 format (YYYY-MM-DD)
+        impactSummary:
+          $ref: '#/components/schemas/ImpactAnalysis'
+        evidenceLinks:
+          type: array
+          items:
+            type: string
+            format: uri
+          minItems: 1
+          description: Array of source URLs
+          example: ["https://sec.gov/edgar/...", "https://apple.com/newsroom/..."]
+
+    ImpactAnalysis:
+      type: object
+      required:
+        - keyFacts
+        - sentiment
+      properties:
+        keyFacts:
+          type: array
+          items:
+            type: string
+            maxLength: 500
+          minItems: 1
+          description: Extracted announcement details, metrics, material changes
+          example: ["Q4 revenue beat expectations by 5%", "iPhone sales up 12% YoY"]
+        sentiment:
+          type: string
+          enum:
+            - positive
+            - negative
+            - neutral
+          description: Sentiment classification based on language patterns
+
+    SearchCoverageChecklist:
+      type: object
+      required:
+        - queryId
+        - dateRange
+        - eventTypeCoverage
+        - summary
+      properties:
+        queryId:
+          type: string
+          format: uuid
+          description: Unique request identifier (correlation ID)
+        dateRange:
+          $ref: '#/components/schemas/DateRange'
+        eventTypeCoverage:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventTypeCoverage'
+        summary:
+          $ref: '#/components/schemas/CoverageSummary'
+
+    DateRange:
+      type: object
+      required:
+        - startDate
+        - endDate
+        - computedStart
+        - computedEnd
+      properties:
+        startDate:
+          type: integer
+          minimum: 1
+          description: Relative offset from today
+        endDate:
+          type: integer
+          minimum: 1
+          description: Duration in days
+        computedStart:
+          type: string
+          format: date
+          description: Computed absolute start date
+        computedEnd:
+          type: string
+          format: date
+          description: Computed absolute end date
+
+    EventTypeCoverage:
+      type: object
+      required:
+        - eventType
+        - sourcesAttempted
+        - results
+      properties:
+        eventType:
+          type: string
+        sourcesAttempted:
+          type: array
+          items:
+            type: string
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+
+    SearchResult:
+      type: object
+      required:
+        - source
+        - eventType
+        - status
+        - duration
+      properties:
+        source:
+          type: string
+        eventType:
+          type: string
+        status:
+          type: string
+          enum:
+            - success
+            - failed
+            - timeout
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Event'
+          description: Present when status=success
+        error:
+          type: string
+          description: Present when status=failed or timeout
+        duration:
+          type: number
+          description: Search duration in milliseconds
+
+    CoverageSummary:
+      type: object
+      required:
+        - totalEventTypes
+        - successfulSearches
+        - failedSearches
+        - timeoutSearches
+        - coveragePercentage
+      properties:
+        totalEventTypes:
+          type: integer
+          description: Total event types in eventsByTypeList
+        successfulSearches:
+          type: integer
+          description: Searches that completed successfully
+        failedSearches:
+          type: integer
+          description: Searches that failed
+        timeoutSearches:
+          type: integer
+          description: Searches that timed out
+        coveragePercentage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: (successfulSearches / totalEventTypes) * 100
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "Bad Request"
+        message:
+          type: string
+          example: "startDate and endDate must be positive integers"
+        code:
+          type: string
+          example: "INVALID_DATE_PARAMS"
+        requestId:
+          type: string
+          format: uuid
+          description: Correlation ID for debugging
